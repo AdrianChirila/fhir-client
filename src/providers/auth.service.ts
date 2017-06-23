@@ -1,0 +1,47 @@
+import {Injectable} from "@angular/core";
+import {Http, Headers, Response} from "@angular/http";
+import {getLogger, ConsoleLogger} from "../utils/console-logger";
+import {URLS, SERVER_ADDRESS} from "./endpoints";
+import {HEADERS} from "../utils/headers";
+import 'rxjs/Rx';
+import {Observable} from "rxjs";
+
+const logger: ConsoleLogger = getLogger('AuthService: ');
+
+
+@Injectable()
+export class AuthService {
+  private headers: Headers = new Headers(HEADERS.CONTENT_TYPE);
+  private token: string;
+  private appMode: string;
+
+  constructor(public http: Http) {
+    logger.log(`Auth Services started!`);
+  }
+
+  public logIn(username: string, password: string) {
+    let sessionUrl: string = `${SERVER_ADDRESS}${URLS.PUBLIC}${URLS.AUTH}${URLS.SESSION}`
+    logger.log(`Authenticate via http: ${username} - ${password}`);
+    let body: any = {username: username, password: password};
+      return this.http
+        .post(sessionUrl, JSON.stringify(body), {headers: this.headers})
+        .map((res: any) => {
+          let parsedRespone: any = res.json();
+          this.appMode = parsedRespone.role;
+          // logger.log(`Str response: ${parsedRespone.stringify()}`);
+          logger.log(`Response from server with status ${parsedRespone.status} : ${parsedRespone.token}`);
+          this.token = parsedRespone.token;
+        })
+        .catch((r: Response) => r.status == 404 || r.status == 400 ?
+          Observable.throw(new Error("No deal found!")) :
+          Observable.throw(new Error("Service unavailable")));
+  }
+
+  public getToken(){
+    return this.token
+  }
+
+  public getAppMode() {
+    return this.appMode;
+  }
+}
